@@ -78,6 +78,7 @@ func (e *lossBasedBandwidthEstimator) updateLossEstimate(results []cc.Acknowledg
 
 	packetsLost := 0
 	for _, p := range results {
+		e.log.Info("ack: " + p.String())
 		if p.Arrival.IsZero() {
 			packetsLost++
 		}
@@ -88,6 +89,9 @@ func (e *lossBasedBandwidthEstimator) updateLossEstimate(results []cc.Acknowledg
 
 	lossRatio := float64(packetsLost) / float64(len(results))
 	e.averageLoss = e.average(time.Since(e.lastLossUpdate), e.averageLoss, lossRatio)
+
+	e.log.Infof("twcc update, acks-size: %v, packets-lost: %v, lossRatio: %v, avgloss: %v", len(results), packetsLost, lossRatio, e.averageLoss)
+
 	e.lastLossUpdate = time.Now()
 
 	increaseLoss := math.Max(e.averageLoss, lossRatio)
