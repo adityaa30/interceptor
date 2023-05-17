@@ -6,6 +6,7 @@ package cc
 import (
 	"container/list"
 	"errors"
+	"github.com/pion/logging"
 	"sync"
 	"time"
 
@@ -29,11 +30,16 @@ var (
 type FeedbackAdapter struct {
 	lock    sync.Mutex
 	history *feedbackHistory
+
+	log logging.LeveledLogger
 }
 
 // NewFeedbackAdapter returns a new FeedbackAdapter
 func NewFeedbackAdapter() *FeedbackAdapter {
-	return &FeedbackAdapter{history: newFeedbackHistory(25000)}
+	return &FeedbackAdapter{
+		history: newFeedbackHistory(25000),
+		log:     logging.NewDefaultLoggerFactory().NewLogger("feedback_adapter"),
+	}
 }
 
 func (f *FeedbackAdapter) onSentRFC8888(ts time.Time, header *rtp.Header, size int) error {
@@ -61,6 +67,8 @@ func (f *FeedbackAdapter) onSentTWCC(ts time.Time, extID uint8, header *rtp.Head
 
 	f.lock.Lock()
 	defer f.lock.Unlock()
+
+	f.log.Infof("[twcc] recorded packet sn:%d ts:%d\n", tccExt.TransportSequence, ts.Unix())
 	f.history.add(Acknowledgment{
 		SequenceNumber: tccExt.TransportSequence,
 		SSRC:           0,
