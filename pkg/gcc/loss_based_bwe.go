@@ -78,8 +78,8 @@ func (e *lossBasedBandwidthEstimator) updateLossEstimate(results []cc.Acknowledg
 
 	packetsLost := 0
 	for _, p := range results {
-		e.log.Info("ack: " + p.String())
 		if p.Arrival.IsZero() {
+			e.log.Infof("received ack: %v", p.String())
 			packetsLost++
 		}
 	}

@@ -22,11 +22,11 @@ type Acknowledgment struct {
 }
 
 func (a Acknowledgment) String() string {
-	return fmt.Sprintf("ssrc:%d sn:%d size:%d departure:%v arrival:%v",
+	return fmt.Sprintf("ssrc:%d sn:%d size:%d departure:%s arrival:%s rtt:%s",
 		a.SSRC,
 		a.SequenceNumber,
 		a.Size,
-		int64(float64(a.Departure.UnixNano())/1e+6),
-		int64(float64(a.Arrival.UnixNano())/1e+6),
+		a.Departure.String(), a.Arrival.String(),
+		a.Arrival.Sub(a.Departure).String(),
 	)
 }

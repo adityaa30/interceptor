@@ -4,6 +4,7 @@
 package gcc
 
 import (
+	"github.com/pion/logging"
 	"time"
 )
 
@@ -21,6 +22,8 @@ type overuseDetector struct {
 	lastUpdate         time.Time
 	increasingDuration time.Duration
 	increasingCounter  int
+
+	log logging.LeveledLogger
 }
 
 func newOveruseDetector(thresh threshold, overuseTime time.Duration, dsw func(DelayStats)) *overuseDetector {
@@ -32,6 +35,8 @@ func newOveruseDetector(thresh threshold, overuseTime time.Duration, dsw func(De
 		lastUpdate:         time.Now(),
 		increasingDuration: 0,
 		increasingCounter:  0,
+
+		log: logging.NewDefaultLoggerFactory().NewLogger("overuse_detector"),
 	}
 }
 
@@ -41,6 +46,10 @@ func (d *overuseDetector) onDelayStats(ds DelayStats) {
 	d.lastUpdate = now
 
 	thresholdUse, estimate, currentThreshold := d.threshold.compare(ds.Estimate, ds.LastReceiveDelta)
+	d.log.Infof("overuse stats usage:%s estimate:%s curr-threshold:%s stats:%v",
+		thresholdUse, estimate, currentThreshold,
+		ds,
+	)
 
 	use := usageNormal
 	if thresholdUse == usageOver {
