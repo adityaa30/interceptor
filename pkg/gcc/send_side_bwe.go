@@ -51,6 +51,8 @@ type SendSideBWE struct {
 	feedbackAdapter *cc.FeedbackAdapter
 
 	onTargetBitrateChange func(bitrate int)
+	onRTTChange           func(rtt time.Duration)
+	lastRTT               time.Duration
 
 	lock          sync.Mutex
 	latestStats   Stats
@@ -217,6 +219,10 @@ func (e *SendSideBWE) WriteRTCP(pkts []rtcp.Packet, _ interceptor.Attributes) er
 			e.delayController.updateRTT(feedbackMinRTT)
 			e.lossController.updateRTT(feedbackMinRTT)
 		}
+		if e.onRTTChange != nil && feedbackMinRTT != e.lastRTT {
+			e.lastRTT = feedbackMinRTT
+			e.onRTTChange(feedbackMinRTT)
+		}
 
 		e.lossController.updateLossEstimate(acks)
 		e.delayController.updateDelayEstimate(acks)
@@ -254,6 +260,10 @@ func (e *SendSideBWE) GetStats() map[string]interface{} {
 // bitrate in bits per second changes
 func (e *SendSideBWE) OnTargetBitrateChange(f func(bitrate int)) {
 	e.onTargetBitrateChange = f
+}
+
+func (e *SendSideBWE) OnRTTChange(f func(rtt time.Duration)) {
+	e.onRTTChange = f
 }
 
 // isClosed returns true if SendSideBWE is closed

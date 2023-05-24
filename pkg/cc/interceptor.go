@@ -9,6 +9,7 @@ import (
 	"github.com/pion/interceptor"
 	"github.com/pion/interceptor/pkg/gcc"
 	"github.com/pion/rtcp"
+	"time"
 )
 
 // Option can be used to set initial options on CC interceptors
@@ -25,6 +26,7 @@ type BandwidthEstimator interface {
 	WriteRTCP([]rtcp.Packet, interceptor.Attributes) error
 	GetTargetBitrate() int
 	OnTargetBitrateChange(f func(bitrate int))
+	OnRTTChange(f func(time.Duration))
 	GetStats() map[string]interface{}
 	Close() error
 }
