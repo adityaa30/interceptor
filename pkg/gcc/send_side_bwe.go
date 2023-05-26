@@ -270,6 +270,7 @@ func (e *SendSideBWE) onDelayUpdate(delayStats DelayStats) {
 
 	lossStats := e.lossController.getEstimate(delayStats.TargetBitrate)
 	bitrateChanged := false
+	fmt.Println("delaybitrate:", delayStats.TargetBitrate, ",lossbitrate:", lossStats.TargetBitrate)
 	bitrate := minInt(delayStats.TargetBitrate, lossStats.TargetBitrate)
 	if bitrate != e.latestBitrate {
 		bitrateChanged = true
