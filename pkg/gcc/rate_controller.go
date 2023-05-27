@@ -154,9 +154,7 @@ func (c *rateController) increase(now time.Time) int {
 
 	// maximum increase to 1.5 * received rate
 	received := int(1.5 * float64(c.latestReceivedRate))
-	//if rate > received && received > c.target {
-	// Narayan: We should not go above 1.5x in any case
-	if rate > received {
+	if rate > received && received > c.target {
 		return received
 	}
 
