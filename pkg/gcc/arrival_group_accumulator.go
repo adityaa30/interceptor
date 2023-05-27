@@ -17,7 +17,11 @@ type arrivalGroupAccumulator struct {
 
 func newArrivalGroupAccumulator() *arrivalGroupAccumulator {
 	return &arrivalGroupAccumulator{
-		interDepartureThreshold:          100 * time.Microsecond, //Narayan: this is 0 in libwebrtc
+		// interDepartureThreshold is 0 in lib webrtc C++ code
+		// TimeDelta send_time_delta = send_time - current_timestamp_group_.send_time;
+		// if (send_time_delta.IsZero())
+		// return true;
+		interDepartureThreshold:          100 * time.Microsecond,
 		interArrivalThreshold:            5 * time.Millisecond,
 		interGroupDelayVariationTreshold: 0,
 	}
