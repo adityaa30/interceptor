@@ -17,7 +17,7 @@ type arrivalGroupAccumulator struct {
 
 func newArrivalGroupAccumulator() *arrivalGroupAccumulator {
 	return &arrivalGroupAccumulator{
-		interDepartureThreshold:          5 * time.Millisecond,
+		interDepartureThreshold:          100 * time.Microsecond, //Narayan: this is 0 in libwebrtc
 		interArrivalThreshold:            5 * time.Millisecond,
 		interGroupDelayVariationTreshold: 0,
 	}
