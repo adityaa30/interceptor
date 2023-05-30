@@ -4,7 +4,6 @@
 package gcc
 
 import (
-	"fmt"
 	"math"
 	"sync"
 	"time"
@@ -92,7 +91,7 @@ func (c *rateController) onDelayStats(ds DelayStats) {
 	}
 	c.delayStats = ds
 	c.delayStats.State = c.delayStats.State.transition(ds.Usage)
-	fmt.Println("delay stats:", ds, ",state:", c.delayStats.State)
+	//fmt.Println("delay stats:", ds, ",state:", c.delayStats.State)
 	if c.delayStats.State == stateHold {
 		return
 	}
