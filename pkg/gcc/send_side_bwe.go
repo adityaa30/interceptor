@@ -55,8 +55,9 @@ type SendSideBWE struct {
 	minBitrate    int
 	maxBitrate    int
 
-	close     chan struct{}
-	closeLock sync.RWMutex
+	close      chan struct{}
+	closeLock  sync.RWMutex
+	lastUpdate time.Time
 }
 
 // Option configures a bandwidth estimator
@@ -268,16 +269,22 @@ func (e *SendSideBWE) onDelayUpdate(delayStats DelayStats) {
 	e.lock.Lock()
 	defer e.lock.Unlock()
 
+	now := time.Now()
+	if e.lastUpdate.IsZero() {
+		e.lastUpdate = now
+	}
+
 	lossStats := e.lossController.getEstimate(delayStats.TargetBitrate)
 	bitrateChanged := false
 	//fmt.Println("delaybitrate:", delayStats.TargetBitrate, ",lossbitrate:", lossStats.TargetBitrate)
 	bitrate := minInt(delayStats.TargetBitrate, lossStats.TargetBitrate)
-	if bitrate != e.latestBitrate {
+	// Even if the bitrate has not changed, send the update, since our algorithm depends on constant updates
+	if bitrate != e.latestBitrate || now.Sub(e.lastUpdate).Milliseconds() > 500 {
 		bitrateChanged = true
 		e.latestBitrate = bitrate
 		e.pacer.SetTargetBitrate(e.latestBitrate)
+		e.lastUpdate = now
 	}
-
 	if bitrateChanged && e.onTargetBitrateChange != nil {
 		go e.onTargetBitrateChange(bitrate)
 	}
