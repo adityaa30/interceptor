@@ -37,7 +37,7 @@ type FeedbackAdapter struct {
 // NewFeedbackAdapter returns a new FeedbackAdapter
 func NewFeedbackAdapter() *FeedbackAdapter {
 	return &FeedbackAdapter{
-		history: newFeedbackHistory(1000),
+		history: newFeedbackHistory(25000),
 		log:     logging.NewDefaultLoggerFactory().NewLogger("feedback_adapter"),
 	}
 }
