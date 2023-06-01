@@ -4,8 +4,9 @@
 package gcc
 
 import (
-	"github.com/pion/logging"
 	"time"
+
+	"github.com/pion/logging"
 )
 
 type threshold interface {
@@ -59,7 +60,7 @@ func (d *overuseDetector) onDelayStats(ds DelayStats) {
 			d.increasingDuration += delta
 		}
 		d.increasingCounter++
-		if d.increasingDuration > d.overuseTime && d.increasingCounter > 1 {
+		if d.increasingDuration > d.overuseTime && d.increasingCounter > 3 {
 			if estimate > d.lastEstimate {
 				use = usageOver
 			}
