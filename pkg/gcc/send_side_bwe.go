@@ -203,6 +203,7 @@ func (e *SendSideBWE) WriteRTCP(pkts []rtcp.Packet, _ interceptor.Attributes) er
 		}
 		if feedbackMinRTT < math.MaxInt {
 			e.delayController.updateRTT(feedbackMinRTT)
+			e.lossController.updateRTT(feedbackMinRTT)
 		}
 
 		e.lossController.updateLossEstimate(acks)
