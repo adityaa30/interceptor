@@ -65,6 +65,7 @@ func (a *adaptiveThreshold) compare(estimate, _ time.Duration) (usage, time.Dura
 	if a.numDeltas < 2 {
 		return usageNormal, estimate, a.max
 	}
+	// this numDeltas is not there in the original paper, removing this as an experiment
 	//t := time.Duration(minInt(a.numDeltas, maxDeltas)) * estimate
 	t := estimate
 	use := usageNormal
