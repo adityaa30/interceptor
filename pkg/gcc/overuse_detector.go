@@ -60,7 +60,7 @@ func (d *overuseDetector) onDelayStats(ds DelayStats) {
 			d.increasingDuration += delta
 		}
 		d.increasingCounter++
-		if d.increasingDuration > d.overuseTime && d.increasingCounter > 3 {
+		if d.increasingDuration > d.overuseTime && d.increasingCounter > 1 {
 			if estimate > d.lastEstimate {
 				d.increasingCounter = 0
 				d.increasingDuration = 0
