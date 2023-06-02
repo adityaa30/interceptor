@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	maxDeltas = 10
+	maxDeltas = 20
 )
 
 type adaptiveThresholdOption func(*adaptiveThreshold)
