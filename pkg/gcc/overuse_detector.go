@@ -62,6 +62,8 @@ func (d *overuseDetector) onDelayStats(ds DelayStats) {
 		d.increasingCounter++
 		if d.increasingDuration > d.overuseTime && d.increasingCounter > 3 {
 			if estimate > d.lastEstimate {
+				d.increasingCounter = 0
+				d.increasingDuration = 0
 				use = usageOver
 			}
 		}
