@@ -65,7 +65,8 @@ func (a *adaptiveThreshold) compare(estimate, _ time.Duration) (usage, time.Dura
 	if a.numDeltas < 2 {
 		return usageNormal, estimate, a.max
 	}
-	t := time.Duration(minInt(a.numDeltas, maxDeltas)) * estimate
+	//t := time.Duration(minInt(a.numDeltas, maxDeltas)) * estimate
+	t := estimate
 	use := usageNormal
 	if t > a.thresh {
 		use = usageOver
