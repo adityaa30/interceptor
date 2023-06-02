@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	maxDeltas = 60
+	maxDeltas = 10
 )
 
 type adaptiveThresholdOption func(*adaptiveThreshold)
@@ -66,8 +66,8 @@ func (a *adaptiveThreshold) compare(estimate, _ time.Duration) (usage, time.Dura
 		return usageNormal, estimate, a.max
 	}
 	// this numDeltas is not there in the original paper, removing this as an experiment
-	//t := time.Duration(minInt(a.numDeltas, maxDeltas)) * estimate
-	t := estimate
+	t := time.Duration(minInt(a.numDeltas, maxDeltas)) * estimate
+	//t := estimate
 	use := usageNormal
 	if t > a.thresh {
 		use = usageOver
