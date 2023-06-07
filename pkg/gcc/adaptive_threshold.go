@@ -4,7 +4,6 @@
 package gcc
 
 import (
-	"fmt"
 	"math"
 	"time"
 )
@@ -66,9 +65,7 @@ func (a *adaptiveThreshold) compare(estimate, arrivalDelta time.Duration) (usage
 	if a.numDeltas < 2 {
 		return usageNormal, estimate, a.max
 	}
-	// this numDeltas is not there in the original paper, removing this as an experiment
 	t := time.Duration(minInt(a.numDeltas, maxDeltas)) * estimate
-	//t := estimate
 	use := usageNormal
 	if t > a.thresh {
 		use = usageOver
@@ -81,13 +78,16 @@ func (a *adaptiveThreshold) compare(estimate, arrivalDelta time.Duration) (usage
 }
 
 func (a *adaptiveThreshold) update(estimate time.Duration, arrivalDelta time.Duration) {
+	// This code was taken from GCC-REMB
+	// in GCC-REMB, this calculation happens on the subscriber end, so it is valid to look at system time diff
+	// but in TWCC, we need to look at arrival-difference rather than system time difference
 	// now := time.Now()
 	// if a.lastUpdate.IsZero() {
 	// 	a.lastUpdate = now
 	// }
 	absEstimate := time.Duration(math.Abs(float64(estimate.Microseconds()))) * time.Microsecond
 	if absEstimate > a.thresh+15*time.Millisecond {
-		fmt.Println("absestimate<15+threshold, skipping, abs:", absEstimate, ",comparing:", a.thresh+15*time.Millisecond)
+		//fmt.Println("absestimate<15+threshold, skipping, abs:", absEstimate, ",comparing:", a.thresh+15*time.Millisecond)
 		//a.lastUpdate = now
 		return
 	}
@@ -99,8 +99,8 @@ func (a *adaptiveThreshold) update(estimate time.Duration, arrivalDelta time.Dur
 	timeDelta := time.Duration(minInt(int(arrivalDelta.Milliseconds()), int(maxTimeDelta.Milliseconds()))) * time.Millisecond
 	d := absEstimate - a.thresh
 	add := k * float64(d.Milliseconds()) * float64(timeDelta.Milliseconds())
-	fmt.Println("changing threshold, delta:", time.Duration(add*1000)*time.Microsecond, ",add:", add,
-		",timedelta:", timeDelta, ",d:", d)
+	// fmt.Println("changing threshold, delta:", time.Duration(add*1000)*time.Microsecond, ",add:", add,
+	// 	",timedelta:", timeDelta, ",d:", d)
 	a.thresh += time.Duration(add*1000) * time.Microsecond
 	a.thresh = clampDuration(a.thresh, a.min, a.max)
 	//a.lastUpdate = now
