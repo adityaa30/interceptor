@@ -4,6 +4,7 @@
 package gcc
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/pion/interceptor/internal/cc"
@@ -17,11 +18,7 @@ type arrivalGroupAccumulator struct {
 
 func newArrivalGroupAccumulator() *arrivalGroupAccumulator {
 	return &arrivalGroupAccumulator{
-		// interDepartureThreshold is 0 in lib webrtc C++ code
-		// TimeDelta send_time_delta = send_time - current_timestamp_group_.send_time;
-		// if (send_time_delta.IsZero())
-		// return true;
-		interDepartureThreshold:          100 * time.Microsecond,
+		interDepartureThreshold:          5 * time.Millisecond,
 		interArrivalThreshold:            5 * time.Millisecond,
 		interGroupDelayVariationTreshold: 0,
 	}
@@ -53,6 +50,9 @@ func (a *arrivalGroupAccumulator) run(in <-chan []cc.Acknowledgment, agWriter fu
 					continue
 				}
 
+				fmt.Println("different group, dep delay:", interDepartureTimePkt(group, next),
+					", interArrivalTimePkt:", interArrivalTimePkt(group, next),
+					",interGroupDelayVariationPkt:", interGroupDelayVariationPkt(group, next))
 				agWriter(group)
 				group = arrivalGroup{}
 				group.add(next)
@@ -69,7 +69,7 @@ func interDepartureTimePkt(a arrivalGroup, b cc.Acknowledgment) time.Duration {
 	if len(a.packets) == 0 {
 		return 0
 	}
-	return b.Departure.Sub(a.packets[len(a.packets)-1].Departure)
+	return b.Departure.Sub(a.firstDeparture)
 }
 
 func interGroupDelayVariationPkt(a arrivalGroup, b cc.Acknowledgment) time.Duration {

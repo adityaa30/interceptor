@@ -4,6 +4,7 @@
 package gcc
 
 import (
+	"fmt"
 	"math"
 	"time"
 )
@@ -60,7 +61,7 @@ func newAdaptiveThreshold(opts ...adaptiveThresholdOption) *adaptiveThreshold {
 	return at
 }
 
-func (a *adaptiveThreshold) compare(estimate, _ time.Duration) (usage, time.Duration, time.Duration) {
+func (a *adaptiveThreshold) compare(estimate, arrivalDelta time.Duration) (usage, time.Duration, time.Duration) {
 	a.numDeltas++
 	if a.numDeltas < 2 {
 		return usageNormal, estimate, a.max
@@ -75,18 +76,19 @@ func (a *adaptiveThreshold) compare(estimate, _ time.Duration) (usage, time.Dura
 		use = usageUnder
 	}
 	thresh := a.thresh
-	a.update(t)
+	a.update(t, arrivalDelta)
 	return use, t, thresh
 }
 
-func (a *adaptiveThreshold) update(estimate time.Duration) {
-	now := time.Now()
-	if a.lastUpdate.IsZero() {
-		a.lastUpdate = now
-	}
+func (a *adaptiveThreshold) update(estimate time.Duration, arrivalDelta time.Duration) {
+	// now := time.Now()
+	// if a.lastUpdate.IsZero() {
+	// 	a.lastUpdate = now
+	// }
 	absEstimate := time.Duration(math.Abs(float64(estimate.Microseconds()))) * time.Microsecond
 	if absEstimate > a.thresh+15*time.Millisecond {
-		a.lastUpdate = now
+		fmt.Println("absestimate<15+threshold, skipping, abs:", absEstimate, ",comparing:", a.thresh+15*time.Millisecond)
+		//a.lastUpdate = now
 		return
 	}
 	k := a.overuseCoefficientUp
@@ -94,10 +96,12 @@ func (a *adaptiveThreshold) update(estimate time.Duration) {
 		k = a.overuseCoefficientDown
 	}
 	maxTimeDelta := 100 * time.Millisecond
-	timeDelta := time.Duration(minInt(int(now.Sub(a.lastUpdate).Milliseconds()), int(maxTimeDelta.Milliseconds()))) * time.Millisecond
+	timeDelta := time.Duration(minInt(int(arrivalDelta.Milliseconds()), int(maxTimeDelta.Milliseconds()))) * time.Millisecond
 	d := absEstimate - a.thresh
 	add := k * float64(d.Milliseconds()) * float64(timeDelta.Milliseconds())
+	fmt.Println("changing threshold, delta:", time.Duration(add*1000)*time.Microsecond, ",add:", add,
+		",timedelta:", timeDelta, ",d:", d)
 	a.thresh += time.Duration(add*1000) * time.Microsecond
 	a.thresh = clampDuration(a.thresh, a.min, a.max)
-	a.lastUpdate = now
+	//a.lastUpdate = now
 }
