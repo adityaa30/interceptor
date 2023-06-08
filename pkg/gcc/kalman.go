@@ -15,12 +15,12 @@ const (
 type kalmanOption func(*kalman)
 
 type kalman struct {
-	gain                   float64
-	estimate               time.Duration
-	processUncertainty     float64 // Q_i
-	estimateError          float64
-	measurementUncertainty float64
-
+	gain                                 float64
+	estimate                             time.Duration
+	processUncertainty                   float64 // Q_i
+	estimateError                        float64
+	measurementUncertainty               float64
+	lastUpdate                           time.Time
 	disableMeasurementUncertaintyUpdates bool
 }
 
@@ -62,6 +62,7 @@ func newKalman(opts ...kalmanOption) *kalman {
 		estimateError:                        0.1,
 		measurementUncertainty:               0,
 		disableMeasurementUncertaintyUpdates: false,
+		lastUpdate:                           time.Time{},
 	}
 	for _, opt := range opts {
 		opt(k)
@@ -70,6 +71,21 @@ func newKalman(opts ...kalmanOption) *kalman {
 }
 
 func (k *kalman) updateEstimate(measurement time.Duration) time.Duration {
+	now := time.Now()
+	if k.lastUpdate.IsZero() {
+		k.lastUpdate = now
+	}
+	// if there is a large gap, reset the state and ignore the first twcc feedback
+	if now.Sub(k.lastUpdate).Milliseconds() > 5000 {
+		k.measurementUncertainty = 0
+		k.estimate = 0
+		k.estimateError = 0.1
+		k.gain = 0
+		k.processUncertainty = 1e-3
+		k.lastUpdate = now
+		return k.estimate
+	}
+	k.lastUpdate = now
 	z := measurement - k.estimate
 
 	zms := float64(z.Microseconds()) / 1000.0
@@ -90,5 +106,7 @@ func (k *kalman) updateEstimate(measurement time.Duration) time.Duration {
 	k.estimate += time.Duration(k.gain * zms * float64(time.Millisecond))
 
 	k.estimateError = (1 - k.gain) * estimateUncertainty
+	// fmt.Println("k.measurementUncertainty:", k.measurementUncertainty, ",k.gain:", k.gain,
+	// 	",estimateUncertainty", estimateUncertainty, ",k.estimateError", k.estimateError, ",k.estimate:", k.estimate)
 	return k.estimate
 }

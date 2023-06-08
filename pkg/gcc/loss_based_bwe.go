@@ -17,11 +17,11 @@ const (
 	// https://datatracker.ietf.org/doc/html/draft-ietf-rmcat-gcc-02#section-6
 
 	increaseLossThreshold = 0.02
-	increaseTimeThreshold = 200 * time.Millisecond
+	increaseTimeThreshold = 300 * time.Millisecond
 	increaseFactor        = 1.05
 
 	decreaseLossThreshold = 0.1
-	decreaseTimeThreshold = 200 * time.Millisecond
+	decreaseTimeThreshold = 300 * time.Millisecond
 )
 
 // LossStats contains internal statistics of the loss based controller
@@ -39,6 +39,7 @@ type lossBasedBandwidthEstimator struct {
 	lastLossUpdate time.Time
 	lastIncrease   time.Time
 	lastDecrease   time.Time
+	latestRTT      time.Duration
 	log            logging.LeveledLogger
 }
 
@@ -71,6 +72,12 @@ func (e *lossBasedBandwidthEstimator) getEstimate(wantedRate int) LossStats {
 	}
 }
 
+func (e *lossBasedBandwidthEstimator) updateRTT(rtt time.Duration) {
+	e.lock.Lock()
+	defer e.lock.Unlock()
+	e.latestRTT = rtt
+}
+
 func (e *lossBasedBandwidthEstimator) updateLossEstimate(results []cc.Acknowledgment) {
 	if len(results) == 0 {
 		return
@@ -97,11 +104,13 @@ func (e *lossBasedBandwidthEstimator) updateLossEstimate(results []cc.Acknowledg
 	increaseLoss := math.Max(e.averageLoss, lossRatio)
 	decreaseLoss := math.Min(e.averageLoss, lossRatio)
 
-	if increaseLoss < increaseLossThreshold && time.Since(e.lastIncrease) > increaseTimeThreshold {
+	if increaseLoss < increaseLossThreshold && time.Since(e.lastIncrease) >
+		increaseTimeThreshold+e.latestRTT {
 		e.log.Infof("loss controller increasing; averageLoss: %v, decreaseLoss: %v, increaseLoss: %v", e.averageLoss, decreaseLoss, increaseLoss)
 		e.lastIncrease = time.Now()
 		e.bitrate = clampInt(int(increaseFactor*float64(e.bitrate)), e.minBitrate, e.maxBitrate)
-	} else if decreaseLoss > decreaseLossThreshold && time.Since(e.lastDecrease) > decreaseTimeThreshold {
+	} else if decreaseLoss > decreaseLossThreshold && time.Since(e.lastDecrease) >
+		decreaseTimeThreshold+e.latestRTT {
 		e.log.Infof("loss controller decreasing; averageLoss: %v, decreaseLoss: %v, increaseLoss: %v", e.averageLoss, decreaseLoss, increaseLoss)
 		e.lastDecrease = time.Now()
 		e.bitrate = clampInt(int(float64(e.bitrate)*(1-0.5*decreaseLoss)), e.minBitrate, e.maxBitrate)
@@ -109,5 +118,5 @@ func (e *lossBasedBandwidthEstimator) updateLossEstimate(results []cc.Acknowledg
 }
 
 func (e *lossBasedBandwidthEstimator) average(delta time.Duration, prev, sample float64) float64 {
-	return sample + math.Exp(-float64(delta.Milliseconds())/200.0)*(prev-sample)
+	return sample + math.Exp(-float64(delta.Milliseconds())/800.0)*(prev-sample)
 }

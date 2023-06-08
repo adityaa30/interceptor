@@ -49,6 +49,9 @@ func (a *arrivalGroupAccumulator) run(in <-chan []cc.Acknowledgment, agWriter fu
 					continue
 				}
 
+				// fmt.Println("different group, dep delay:", interDepartureTimePkt(group, next),
+				// 	", interArrivalTimePkt:", interArrivalTimePkt(group, next),
+				// 	",interGroupDelayVariationPkt:", interGroupDelayVariationPkt(group, next))
 				agWriter(group)
 				group = arrivalGroup{}
 				group.add(next)
@@ -61,11 +64,13 @@ func interArrivalTimePkt(a arrivalGroup, b cc.Acknowledgment) time.Duration {
 	return b.Arrival.Sub(a.arrival)
 }
 
+// libwebrtc takes a difference between first departure and last departure
+// pion was looking at the difference between penultimate and last departures
 func interDepartureTimePkt(a arrivalGroup, b cc.Acknowledgment) time.Duration {
 	if len(a.packets) == 0 {
 		return 0
 	}
-	return b.Departure.Sub(a.packets[len(a.packets)-1].Departure)
+	return b.Departure.Sub(a.firstDeparture)
 }
 
 func interGroupDelayVariationPkt(a arrivalGroup, b cc.Acknowledgment) time.Duration {
