@@ -144,7 +144,12 @@ func (c *rateController) increase(now time.Time) int {
 		alpha := 0.5 * math.Min(float64(now.Sub(c.lastUpdate).Milliseconds())/float64(responseTime.Milliseconds()), 1.0)
 		increase := int(math.Max(1000.0, alpha*expectedPacketSizeBits))
 		c.lastUpdate = now
-		return int(math.Min(float64(c.target+increase), 1.5*float64(c.latestReceivedRate)))
+		// This limiting is causing issues when our actual bitrate is less than policybitrate
+		// Say policybitrate for a layer is 500Kbps but actual bitrate is only 200Kbps
+		// delay bwe reduces the bitrate since not enough bitrate is being sent
+		// but allocateAll looks at policy bitrate and decides we don't have enough bitrate
+		//return int(math.Min(float64(c.target+increase), 1.5*float64(c.latestReceivedRate)))
+		return c.target + increase
 	}
 	eta := math.Pow(1.08, math.Min(float64(now.Sub(c.lastUpdate).Milliseconds())/1000, 1.0))
 	c.lastUpdate = now
@@ -152,10 +157,14 @@ func (c *rateController) increase(now time.Time) int {
 	rate := int(eta * float64(c.target))
 
 	// maximum increase to 1.5 * received rate
-	received := int(1.5 * float64(c.latestReceivedRate))
-	if rate > received && received > c.target {
-		return received
-	}
+	// This limiting is causing issues when our actual bitrate is less than policybitrate
+	// Say policybitrate for a layer is 500Kbps but actual bitrate is only 200Kbps
+	// delay bwe reduces the bitrate since not enough bitrate is being sent
+	// but allocateAll looks at policy bitrate and decides we don't have enough bitrate
+	// received := int(1.5 * float64(c.latestReceivedRate))
+	// if rate > received && received > c.target {
+	// 	return received
+	// }
 
 	if rate < c.target {
 		return c.target

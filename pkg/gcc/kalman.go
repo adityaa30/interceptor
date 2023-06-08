@@ -4,7 +4,6 @@
 package gcc
 
 import (
-	"fmt"
 	"math"
 	"time"
 )
@@ -107,7 +106,7 @@ func (k *kalman) updateEstimate(measurement time.Duration) time.Duration {
 	k.estimate += time.Duration(k.gain * zms * float64(time.Millisecond))
 
 	k.estimateError = (1 - k.gain) * estimateUncertainty
-	fmt.Println("k.measurementUncertainty:", k.measurementUncertainty, ",k.gain:", k.gain,
-		",estimateUncertainty", estimateUncertainty, ",k.estimateError", k.estimateError, ",k.estimate:", k.estimate)
+	// fmt.Println("k.measurementUncertainty:", k.measurementUncertainty, ",k.gain:", k.gain,
+	// 	",estimateUncertainty", estimateUncertainty, ",k.estimateError", k.estimateError, ",k.estimate:", k.estimate)
 	return k.estimate
 }
