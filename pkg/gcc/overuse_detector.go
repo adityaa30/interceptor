@@ -27,7 +27,7 @@ type overuseDetector struct {
 	log logging.LeveledLogger
 }
 
-func newOveruseDetector(thresh threshold, overuseTime time.Duration, dsw func(DelayStats)) *overuseDetector {
+func newOveruseDetector(thresh threshold, overuseTime time.Duration, dsw func(DelayStats), factory logging.LoggerFactory) *overuseDetector {
 	return &overuseDetector{
 		threshold:          thresh,
 		overuseTime:        overuseTime,
@@ -37,7 +37,7 @@ func newOveruseDetector(thresh threshold, overuseTime time.Duration, dsw func(De
 		increasingDuration: 0,
 		increasingCounter:  0,
 
-		log: logging.NewDefaultLoggerFactory().NewLogger("overuse_detector"),
+		log: factory.NewLogger("overuse_detector"),
 	}
 }
 

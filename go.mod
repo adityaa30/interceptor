@@ -1,4 +1,4 @@
-module github.com/narayanaraorao/interceptor
+module github.com/pion/interceptor
 
 go 1.15
 

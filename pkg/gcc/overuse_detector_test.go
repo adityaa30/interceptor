@@ -4,6 +4,7 @@
 package gcc
 
 import (
+	"github.com/pion/logging"
 	"testing"
 	"time"
 
@@ -93,7 +94,7 @@ func TestOveruseDetectorWithoutDelay(t *testing.T) {
 			dsw := func(ds DelayStats) {
 				out <- ds
 			}
-			od := newOveruseDetector(tc.thresh, tc.delay, dsw)
+			od := newOveruseDetector(tc.thresh, tc.delay, dsw, logging.NewDefaultLoggerFactory())
 			go func() {
 				defer close(out)
 				for _, e := range tc.estimates {

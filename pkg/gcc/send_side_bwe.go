@@ -5,6 +5,7 @@ package gcc
 
 import (
 	"errors"
+	"github.com/pion/logging"
 	"math"
 	"sync"
 	"time"
@@ -42,6 +43,8 @@ type Stats struct {
 
 // SendSideBWE implements a combination of loss and delay based GCC
 type SendSideBWE struct {
+	loggerFactory logging.LoggerFactory
+
 	pacer           Pacer
 	lossController  *lossBasedBandwidthEstimator
 	delayController *delayController
@@ -62,6 +65,13 @@ type SendSideBWE struct {
 
 // Option configures a bandwidth estimator
 type Option func(*SendSideBWE) error
+
+func LoggerFactory(factory logging.LoggerFactory) Option {
+	return func(e *SendSideBWE) error {
+		e.loggerFactory = factory
+		return nil
+	}
+}
 
 // SendSideBWEInitialBitrate sets the initial bitrate of new GCC interceptors
 func SendSideBWEInitialBitrate(rate int) Option {
@@ -101,7 +111,6 @@ func NewSendSideBWE(opts ...Option) (*SendSideBWE, error) {
 		pacer:                 nil,
 		lossController:        nil,
 		delayController:       nil,
-		feedbackAdapter:       cc.NewFeedbackAdapter(),
 		onTargetBitrateChange: nil,
 		lock:                  sync.Mutex{},
 		latestStats:           Stats{},
@@ -109,22 +118,25 @@ func NewSendSideBWE(opts ...Option) (*SendSideBWE, error) {
 		minBitrate:            minBitrate,
 		maxBitrate:            maxBitrate,
 		close:                 make(chan struct{}),
+		loggerFactory:         logging.NewDefaultLoggerFactory(),
 	}
 	for _, opt := range opts {
 		if err := opt(e); err != nil {
 			return nil, err
 		}
 	}
+
+	e.feedbackAdapter = cc.NewFeedbackAdapter(e.loggerFactory)
 	if e.pacer == nil {
-		e.pacer = NewLeakyBucketPacer(e.latestBitrate)
+		e.pacer = NewLeakyBucketPacer(e.latestBitrate, e.loggerFactory)
 	}
-	e.lossController = newLossBasedBWE(e.latestBitrate)
+	e.lossController = newLossBasedBWE(e.latestBitrate, e.loggerFactory)
 	e.delayController = newDelayController(delayControllerConfig{
 		nowFn:          time.Now,
 		initialBitrate: e.latestBitrate,
 		minBitrate:     e.minBitrate,
 		maxBitrate:     e.maxBitrate,
-	})
+	}, e.loggerFactory)
 
 	e.delayController.onUpdate(e.onDelayUpdate)
 
