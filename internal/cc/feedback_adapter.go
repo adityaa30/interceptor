@@ -119,11 +119,18 @@ func (f *FeedbackAdapter) unpackRunLengthChunk(start uint16, refTime time.Time, 
 	return deltaIndex, refTime, result, nil
 }
 
-func (f *FeedbackAdapter) unpackStatusVectorChunk(start uint16, refTime time.Time, chunk *rtcp.StatusVectorChunk, deltas []*rtcp.RecvDelta) (consumedDeltas int, nextRef time.Time, acks []Acknowledgment, err error) {
-	result := make([]Acknowledgment, len(chunk.SymbolList))
+func (f *FeedbackAdapter) unpackStatusVectorChunk(start uint16, refTime time.Time, chunk *rtcp.StatusVectorChunk,
+	deltas []*rtcp.RecvDelta, maxBitsToRead int) (consumedDeltas int, nextRef time.Time, acks []Acknowledgment, err error) {
+
+	bitsToRead := len(chunk.SymbolList)
+	if bitsToRead > maxBitsToRead {
+		bitsToRead = maxBitsToRead
+	}
+	result := make([]Acknowledgment, bitsToRead)
 	deltaIndex := 0
 	resultIndex := 0
-	for i, symbol := range chunk.SymbolList {
+	for i := 0; i < bitsToRead; i++ {
+		symbol := chunk.SymbolList[i]
 		key := feedbackHistoryKey{
 			ssrc:           0,
 			sequenceNumber: start + uint16(i),
@@ -156,9 +163,11 @@ func (f *FeedbackAdapter) OnTransportCCFeedback(_ time.Time, feedback *rtcp.Tran
 	refTime := time.Time{}.Add(time.Duration(feedback.ReferenceTime) * 64 * time.Millisecond)
 	recvDeltas := feedback.RecvDeltas
 
+	processedPacketNum := 0
 	for _, chunk := range feedback.PacketChunks {
 		switch chunk := chunk.(type) {
 		case *rtcp.RunLengthChunk:
+			processedPacketNum += int(chunk.RunLength)
 			n, nextRefTime, acks, err := f.unpackRunLengthChunk(index, refTime, chunk, recvDeltas)
 			if err != nil {
 				return nil, err
@@ -168,11 +177,13 @@ func (f *FeedbackAdapter) OnTransportCCFeedback(_ time.Time, feedback *rtcp.Tran
 			recvDeltas = recvDeltas[n:]
 			index = uint16(int(index) + len(acks))
 		case *rtcp.StatusVectorChunk:
-			n, nextRefTime, acks, err := f.unpackStatusVectorChunk(index, refTime, chunk, recvDeltas)
+			maxBitsToRead := int(feedback.PacketStatusCount) - processedPacketNum
+			n, nextRefTime, acks, err := f.unpackStatusVectorChunk(index, refTime, chunk, recvDeltas, maxBitsToRead)
 			if err != nil {
 				return nil, err
 			}
 			refTime = nextRefTime
+			processedPacketNum += len(acks)
 			result = append(result, acks...)
 			recvDeltas = recvDeltas[n:]
 			index = uint16(int(index) + len(acks))
